@@ -98,8 +98,12 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
     };
 
     const _set = (newStatus: string, newError: unknown = null): void => {
-        if (_locked || _destroyed) return;
-        if (_status === newStatus && _error === newError) return;
+        if (_locked || _destroyed) {
+            return;
+        }
+        if (_status === newStatus && _error === newError) {
+            return;
+        }
         const prevStatus = _status;
         const prevError = _error;
         _status = newStatus;
@@ -149,7 +153,9 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
     // ----------------------------------------
 
     const subscribe = (fn: AstatusListener): (() => void) => {
-        if (_destroyed) return () => {};
+        if (_destroyed) {
+            return () => {};
+        }
         _listeners.add(fn);
         return () => _listeners.delete(fn);
     };
@@ -234,8 +240,10 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
     // ----------------------------------------
 
     const reset = (): void => {
-        if (_destroyed) return;
-        _locked = false;
+        if (_destroyed) {
+            return;
+        }
+        unlock();
         _set(STATUS.INITIAL);
     };
 

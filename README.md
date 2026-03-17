@@ -46,6 +46,106 @@ console.log(loginAS.isSuccess); // true
 
 ---
 
+## Vue / Nuxt
+
+`astatus` includes a Vue composable out of the box. No extra install needed.
+
+```ts
+import { useAstatus } from "astatus/vue";
+```
+
+### Basic usage
+
+```vue
+<script setup>
+import { useAstatus } from "astatus/vue";
+
+const loginAS = useAstatus({ name: "login" });
+
+const handleLogin = async () => {
+    loginAS.pending();
+    try {
+        await fetchUser();
+        loginAS.success();
+    } catch (e) {
+        loginAS.failure(e);
+    }
+};
+</script>
+
+<template>
+    <button :disabled="loginAS.isPending" @click="handleLogin">
+        {{ loginAS.isPending ? "Loading..." : "Login" }}
+    </button>
+    <p v-if="loginAS.isFailure">{{ loginAS.error }}</p>
+</template>
+```
+
+### Reactivity
+
+`status` and `error` are readonly refs. `isInitial`, `isPending`, `isSuccess`, `isFailure`, `isCustom` are computed values — all reactive and safe to use in templates.
+
+Refs are automatically unwrapped inside templates, so `.value` is not needed there.
+
+```ts
+const AS = useAstatus();
+
+// script: use .value
+watch(AS.isPending, (val) => {
+    console.log("pending:", val);
+});
+
+// template: no .value needed
+// <p v-if="AS.isPending">...</p>
+```
+
+> **Note:** Destructuring breaks reactivity. Always use the returned object directly.
+>
+> ```ts
+> // ✅
+> const loginAS = useAstatus();
+> // loginAS.isPending in template
+>
+> // ❌ reactivity lost
+> const { isPending } = useAstatus();
+> ```
+
+### Auto cleanup
+
+The composable automatically calls `destroy()` on component unmount via `onUnmounted`. No manual cleanup needed in most cases.
+
+If you use `useAstatus` outside of a component (e.g. in a Pinia store), auto cleanup does not apply — call `destroy()` manually when done.
+
+```ts
+// Pinia store
+const AS = useAstatus();
+
+// when no longer needed
+AS.destroy();
+```
+
+### wait() in Nuxt
+
+`wait()` uses `setTimeout` internally. In Nuxt, avoid calling it during SSR — use it inside `onMounted` or guard with `import.meta.client`.
+
+```ts
+// ✅ safe
+onMounted(async () => {
+    await AS.wait();
+});
+
+// ✅ safe
+if (import.meta.client) {
+    await AS.wait();
+}
+```
+
+### Requirements
+
+- Vue >= 3.3.0
+
+---
+
 ## API
 
 > All examples use `const AS = astatus()` unless otherwise noted.
@@ -176,3 +276,7 @@ STATUS.FAILURE; // 'failure'
 ## License
 
 MIT
+
+---
+
+_Readme partially edited with AI assistance._

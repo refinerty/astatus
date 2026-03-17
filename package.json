@@ -1,6 +1,6 @@
 {
     "name": "astatus",
-    "version": "0.1.0",
+    "version": "0.1.2",
     "description": "Async status signal. No data, no fetch — just the stage.",
     "type": "module",
     "main": "./dist/index.cjs",
@@ -10,6 +10,11 @@
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js",
             "require": "./dist/index.cjs"
+        },
+        "./vue": {
+            "types": "./dist/vue/index.d.ts",
+            "import": "./dist/vue/index.js",
+            "require": "./dist/vue/index.cjs"
         }
     },
     "types": "./dist/index.d.ts",
@@ -17,7 +22,7 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsup src/index.ts --format esm,cjs --dts",
+        "build": "tsup src/index.ts src/vue/index.ts --format esm,cjs --dts",
         "test": "vitest"
     },
     "keywords": [
@@ -25,12 +30,22 @@
         "status",
         "state",
         "signal",
-        "framework-agnostic"
+        "framework-agnostic",
+        "vue"
     ],
     "license": "MIT",
+    "peerDependencies": {
+        "vue": ">=3.3.0"
+    },
+    "peerDependenciesMeta": {
+        "vue": {
+            "optional": true
+        }
+    },
     "devDependencies": {
         "tsup": "latest",
         "typescript": "^5.9.3",
-        "vitest": "latest"
+        "vitest": "latest",
+        "vue": "^3.5.30"
     }
 }

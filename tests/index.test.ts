@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import astatus, { STATUS } from "../src/index";
+import astatus, { STATUS } from "../src/index.js";
 
 describe("astatus", () => {
     afterEach(() => {
