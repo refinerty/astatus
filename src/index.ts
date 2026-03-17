@@ -28,6 +28,7 @@ export interface AstatusWaitResult {
 }
 
 export interface Astatus {
+    readonly name: string | null;
     readonly status: string;
     readonly error: unknown;
     readonly isInitial: boolean;
@@ -59,17 +60,8 @@ export interface Astatus {
     destroy: () => void;
 }
 
-/**
- * astatus
- *
- * A signal that manages only the stage of an async operation
- * (initial / pending / success / failure).
- * Completely decoupled from data and fetch logic —
- * you decide when and where to inject each status.
- *
- * @param options.status - Initial status (default: 'initial')
- * @param options.name - Name for debug logs
- */
+const DEFAULT_WAIT_TYPES = [STATUS.SUCCESS, STATUS.FAILURE];
+
 const astatus = (options: AstatusOptions = {}): Astatus => {
     const { name = null } = options;
     const _prefix = `[astatus${name ? `:${name}` : ""}]`;
@@ -80,10 +72,7 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
     let _locked = false;
     let _destroyed = false;
     const _listeners = new Set<AstatusListener>();
-
-    // ----------------------------------------
-    // Internal utils
-    // ----------------------------------------
+    const _waitResolvers = new Set<(result: AstatusWaitResult) => void>();
 
     const _notify = (prevStatus: string, prevError: unknown): void => {
         const curr: AstatusState = { status: _status, error: _error };
@@ -111,19 +100,11 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
         _notify(prevStatus, prevError);
     };
 
-    // ----------------------------------------
-    // Read
-    // ----------------------------------------
-
     const isInitial = () => _status === STATUS.INITIAL;
     const isPending = () => _status === STATUS.PENDING;
     const isSuccess = () => _status === STATUS.SUCCESS;
     const isFailure = () => _status === STATUS.FAILURE;
     const isCustom = () => !_builtinStatuses.has(_status);
-
-    // ----------------------------------------
-    // Inject
-    // ----------------------------------------
 
     const initial = () => _set(STATUS.INITIAL);
     const pending = () => _set(STATUS.PENDING);
@@ -137,20 +118,12 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
         _set(type);
     };
 
-    // ----------------------------------------
-    // Lock
-    // ----------------------------------------
-
     const lock = () => {
         _locked = true;
     };
     const unlock = () => {
         _locked = false;
     };
-
-    // ----------------------------------------
-    // Subscribe
-    // ----------------------------------------
 
     const subscribe = (fn: AstatusListener): (() => void) => {
         if (_destroyed) {
@@ -177,12 +150,8 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
         });
     };
 
-    // ----------------------------------------
-    // Wait
-    // ----------------------------------------
-
     const wait = (
-        types: string | string[] = [STATUS.SUCCESS, STATUS.FAILURE],
+        types: string | string[] = DEFAULT_WAIT_TYPES,
         timeoutSec = 10,
     ): Promise<AstatusWaitResult> => {
         const _types = typeof types === "string" ? [types] : types;
@@ -210,9 +179,15 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
 
             let unsubscribe: () => void;
 
+            const wrappedResolve = (result: AstatusWaitResult) => {
+                _waitResolvers.delete(wrappedResolve);
+                resolve(result);
+            };
+            _waitResolvers.add(wrappedResolve);
+
             const timer = setTimeout(() => {
                 unsubscribe();
-                resolve({
+                wrappedResolve({
                     timeout: true,
                     immediate: false,
                     status: _status,
@@ -224,7 +199,7 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
                 if (_types.includes(status)) {
                     clearTimeout(timer);
                     unsubscribe();
-                    resolve({
+                    wrappedResolve({
                         timeout: false,
                         immediate: false,
                         status,
@@ -235,24 +210,32 @@ const astatus = (options: AstatusOptions = {}): Astatus => {
         });
     };
 
-    // ----------------------------------------
-    // Reset / Destroy
-    // ----------------------------------------
-
     const reset = (): void => {
-        if (_destroyed) {
-            return;
-        }
+        if (_destroyed) return;
         unlock();
-        _set(STATUS.INITIAL);
+        _set(STATUS.INITIAL, null);
     };
 
     const destroy = (): void => {
+        _waitResolvers.forEach((resolve) => {
+            resolve({
+                timeout: false,
+                immediate: false,
+                destroyed: true,
+                status: _status,
+                error: _error,
+            });
+        });
+        _waitResolvers.clear();
+
         _listeners.clear();
         _destroyed = true;
     };
 
     return {
+        get name() {
+            return name;
+        },
         get status() {
             return _status;
         },

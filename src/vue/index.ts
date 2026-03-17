@@ -1,5 +1,5 @@
-import { ref, readonly, computed, onUnmounted, hasInjectionContext } from "vue";
-import astatus, { STATUS, type AstatusOptions } from "astatus";
+import { ref, computed, reactive, onUnmounted, hasInjectionContext } from "vue";
+import astatus, { STATUS, type AstatusOptions } from "../index.js";
 
 const BUILTIN_STATUSES = new Set<string>(Object.values(STATUS));
 
@@ -23,26 +23,26 @@ export const useAstatus = (options: AstatusOptions = {}) => {
         onUnmounted(destroy);
     }
 
-    const isInitial = computed(() => status.value === STATUS.INITIAL);
-    const isPending = computed(() => status.value === STATUS.PENDING);
-    const isSuccess = computed(() => status.value === STATUS.SUCCESS);
-    const isFailure = computed(() => status.value === STATUS.FAILURE);
-    const isCustom = computed(() => !BUILTIN_STATUSES.has(status.value));
+    return reactive({
+        get status() {
+            return status.value;
+        },
+        get error() {
+            return error.value;
+        },
 
-    const isLocked = () => instance.isLocked;
+        isInitial: computed(() => status.value === STATUS.INITIAL),
+        isPending: computed(() => status.value === STATUS.PENDING),
+        isSuccess: computed(() => status.value === STATUS.SUCCESS),
+        isFailure: computed(() => status.value === STATUS.FAILURE),
+        isCustom: computed(() => !BUILTIN_STATUSES.has(status.value)),
 
-    return {
-        status: readonly(status),
-        error: readonly(error),
-
-        isInitial,
-        isPending,
-        isSuccess,
-        isFailure,
-        isCustom,
-        isLocked,
-
-        name: options.name ?? null,
+        get isLocked() {
+            return instance.isLocked;
+        },
+        get name() {
+            return instance.name;
+        },
 
         initial: instance.initial,
         pending: instance.pending,
@@ -55,5 +55,5 @@ export const useAstatus = (options: AstatusOptions = {}) => {
         wait: instance.wait,
         reset: instance.reset,
         destroy,
-    };
+    });
 };
