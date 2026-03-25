@@ -1,10 +1,18 @@
 {
     "name": "astatus",
-    "version": "0.1.3",
+    "version": "0.1.5",
     "description": "Async status signal. No data, no fetch — just the stage.",
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/refinerty/astatus"
+    },
+    "homepage": "https://github.com/refinerty/astatus#readme",
+    "bugs": {
+        "url": "https://github.com/refinerty/astatus/issues"
+    },
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
